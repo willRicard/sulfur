@@ -22,9 +22,9 @@ typedef struct SulfurSwapchain {
 
   // Synchronization primitives
   uint32_t frame_id;
-  VkSemaphore image_available_semaphores[3];
-  VkSemaphore render_finished_semaphores[3];
-  VkFence fences[3];
+  VkSemaphore image_available_semaphores[4];
+  VkSemaphore render_finished_semaphores[4];
+  VkFence fences[4];
 } SulfurSwapchain;
 
 /**

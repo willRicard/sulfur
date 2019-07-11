@@ -11,8 +11,11 @@ VkResult sulfur_device_create(VkInstance instance, VkSurfaceKHR surface,
     return result;
   }
 
-  VkPhysicalDevice *devices =
-      (VkPhysicalDevice *)malloc(device_count * sizeof(VkPhysicalDevice));
+  VkPhysicalDevice *devices = NULL;
+  devices = (VkPhysicalDevice *)malloc(device_count * sizeof(VkPhysicalDevice));
+  if (devices == NULL) {
+    return VK_ERROR_OUT_OF_HOST_MEMORY;
+  }
 
   result = vkEnumeratePhysicalDevices(instance, &device_count, devices);
   if (result != VK_SUCCESS) {
@@ -48,9 +51,12 @@ VkResult sulfur_device_create(VkInstance instance, VkSurfaceKHR surface,
   vkGetPhysicalDeviceQueueFamilyProperties(dev->physical_device,
                                            &queue_family_count, NULL);
 
-  VkQueueFamilyProperties *queue_family_properties =
-      (VkQueueFamilyProperties *)malloc(queue_family_count *
-                                        sizeof(VkQueueFamilyProperties));
+  VkQueueFamilyProperties *queue_family_properties = NULL;
+  queue_family_properties = (VkQueueFamilyProperties *)malloc(
+      queue_family_count * sizeof(VkQueueFamilyProperties));
+  if (queue_family_properties == NULL) {
+    return VK_ERROR_OUT_OF_HOST_MEMORY;
+  }
 
   vkGetPhysicalDeviceQueueFamilyProperties(
       dev->physical_device, &queue_family_count, queue_family_properties);
@@ -113,7 +119,11 @@ VkResult sulfur_device_create(VkInstance instance, VkSurfaceKHR surface,
   device_info.ppEnabledExtensionNames = &device_extension;
   device_info.pEnabledFeatures = &features;
 
-  vkCreateDevice(dev->physical_device, &device_info, NULL, &dev->device);
+  result =
+      vkCreateDevice(dev->physical_device, &device_info, NULL, &dev->device);
+  if (result != VK_SUCCESS) {
+    return result;
+  }
 
   vkGetDeviceQueue(dev->device, graphics_queue_id, 0, &dev->graphics_queue);
   vkGetDeviceQueue(dev->device, present_queue_id, 0, &dev->present_queue);

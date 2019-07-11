@@ -2,16 +2,14 @@
 
 #include <stdlib.h>
 
-#include <sulfur/sulfur.h>
-
 static void choose_resolution(VkSurfaceCapabilitiesKHR *capabilities,
                               VkExtent2D *res) {
   if (capabilities->currentExtent.width != UINT32_MAX) {
     *res = capabilities->currentExtent;
   } else {
     // Clamp the window size within the supported range
-    res->width = SULFUR_WINDOW_WIDTH;
-    res->height = SULFUR_WINDOW_HEIGHT;
+    res->width = 800;
+    res->height = 450;
     if (res->width < capabilities->minImageExtent.width) {
       res->width = capabilities->minImageExtent.width;
     } else if (res->width > capabilities->maxImageExtent.width) {
@@ -51,8 +49,12 @@ VkResult sulfur_swapchain_create(SulfurDevice *dev, VkSurfaceKHR surface,
   vkGetPhysicalDeviceSurfaceFormatsKHR(dev->physical_device, surface,
                                        &format_count, NULL);
 
-  VkSurfaceFormatKHR *formats =
+  VkSurfaceFormatKHR *formats = NULL;
+  formats =
       (VkSurfaceFormatKHR *)malloc(format_count * sizeof(VkSurfaceFormatKHR));
+  if (formats == NULL) {
+    return VK_ERROR_OUT_OF_HOST_MEMORY;
+  }
 
   vkGetPhysicalDeviceSurfaceFormatsKHR(dev->physical_device, surface,
                                        &format_count, formats);
@@ -70,12 +72,12 @@ VkResult sulfur_swapchain_create(SulfurDevice *dev, VkSurfaceKHR surface,
   swapchain->info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
   if (dev->graphics_queue_id != dev->present_queue_id) {
-    uint32_t queue_familyIndices[2] = {dev->graphics_queue_id,
-                                       dev->present_queue_id};
+    uint32_t queue_family_indices[2] = {dev->graphics_queue_id,
+                                        dev->present_queue_id};
 
     info->imageSharingMode = VK_SHARING_MODE_CONCURRENT;
     info->queueFamilyIndexCount = 2;
-    info->pQueueFamilyIndices = queue_familyIndices;
+    info->pQueueFamilyIndices = queue_family_indices;
   } else {
     info->imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     info->queueFamilyIndexCount = 0;
@@ -83,7 +85,14 @@ VkResult sulfur_swapchain_create(SulfurDevice *dev, VkSurfaceKHR surface,
   }
 
   info->preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-  info->compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+
+  // Default to opaque windows.
+  if (capabilities.supportedCompositeAlpha &
+      VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR) {
+    info->compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+  } else {
+    info->compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
+  }
 
   // Choose the best present mode (see the spec, preference in descending
   // order).
@@ -95,8 +104,12 @@ VkResult sulfur_swapchain_create(SulfurDevice *dev, VkSurfaceKHR surface,
   vkGetPhysicalDeviceSurfacePresentModesKHR(dev->physical_device, surface,
                                             &present_mode_count, NULL);
 
-  VkPresentModeKHR *present_modes =
+  VkPresentModeKHR *present_modes = NULL;
+  present_modes =
       (VkPresentModeKHR *)malloc(present_mode_count * sizeof(VkPresentModeKHR));
+  if (present_modes == NULL) {
+    return VK_ERROR_OUT_OF_HOST_MEMORY;
+  }
 
   vkGetPhysicalDeviceSurfacePresentModesKHR(dev->physical_device, surface,
                                             &present_mode_count, present_modes);
@@ -115,37 +128,7 @@ VkResult sulfur_swapchain_create(SulfurDevice *dev, VkSurfaceKHR surface,
   info->clipped = VK_FALSE;
   info->oldSwapchain = VK_NULL_HANDLE;
 
-  sulfur_swapchain_resize(dev, surface, swapchain);
-
-  // Create semaphores for rendering synchronization.
-  VkSemaphoreCreateInfo semaphore_info = {};
-  semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-  VkFenceCreateInfo fence_info = {};
-  fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-  fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-  VkResult result = VK_SUCCESS;
-  for (uint32_t i = 0; i < 3; i++) {
-    result = vkCreateSemaphore(dev->device, &semaphore_info, NULL,
-                               &swapchain->image_available_semaphores[i]);
-    if (result != VK_SUCCESS) {
-      return result;
-    }
-
-    result = vkCreateSemaphore(dev->device, &semaphore_info, NULL,
-                               &swapchain->render_finished_semaphores[i]);
-    if (result != VK_SUCCESS) {
-      return result;
-    }
-
-    result =
-        vkCreateFence(dev->device, &fence_info, NULL, &swapchain->fences[i]);
-    if (result != VK_SUCCESS) {
-      return result;
-    }
-  }
-  return VK_SUCCESS;
+  return sulfur_swapchain_resize(dev, surface, swapchain);
 }
 
 void swapchain_cleanup(SulfurDevice *dev, SulfurSwapchain *swapchain) {
@@ -154,6 +137,11 @@ void swapchain_cleanup(SulfurDevice *dev, SulfurSwapchain *swapchain) {
   for (uint32_t i = 0; i < swapchain->image_count; i++) {
     vkDestroyFramebuffer(dev->device, swapchain->framebuffers[i], NULL);
     vkDestroyImageView(dev->device, swapchain->image_views[i], NULL);
+    vkDestroyFence(dev->device, swapchain->fences[i], NULL);
+    vkDestroySemaphore(dev->device, swapchain->image_available_semaphores[i],
+                       NULL);
+    vkDestroySemaphore(dev->device, swapchain->render_finished_semaphores[i],
+                       NULL);
   }
 
   vkDestroyRenderPass(dev->device, swapchain->render_pass, NULL);
@@ -166,14 +154,6 @@ void sulfur_swapchain_destroy(SulfurDevice *dev, SulfurSwapchain *swapchain) {
   swapchain_cleanup(dev, swapchain);
 
   vkDestroySwapchainKHR(dev->device, swapchain->swapchain, NULL);
-
-  for (uint32_t i = 0; i < 3; i++) {
-    vkDestroySemaphore(dev->device, swapchain->render_finished_semaphores[i],
-                       NULL);
-    vkDestroySemaphore(dev->device, swapchain->image_available_semaphores[i],
-                       NULL);
-    vkDestroyFence(dev->device, swapchain->fences[i], NULL);
-  }
 }
 
 VkResult sulfur_swapchain_resize(SulfurDevice *dev, VkSurfaceKHR surface,
@@ -186,7 +166,9 @@ VkResult sulfur_swapchain_resize(SulfurDevice *dev, VkSurfaceKHR surface,
 
   VkSwapchainKHR old_swapchain = swapchain->swapchain;
 
-  swapchain->info.oldSwapchain = old_swapchain;
+  // @TODO: Using `oldSwapchain` currently fails
+  // with MoltenVK.
+  // swapchain->info.oldSwapchain = old_swapchain;
 
   VkResult result = vkCreateSwapchainKHR(dev->device, &swapchain->info, NULL,
                                          &swapchain->swapchain);
@@ -194,10 +176,10 @@ VkResult sulfur_swapchain_resize(SulfurDevice *dev, VkSurfaceKHR surface,
     return result;
   }
 
-  vkDestroySwapchainKHR(dev->device, old_swapchain, NULL);
+  // vkDestroySwapchainKHR(dev->device, old_swapchain, NULL);
 
   // Retrieve the swapchain images.
-  VkImage swapchain_images[3];
+  VkImage swapchain_images[4];
   vkGetSwapchainImagesKHR(dev->device, swapchain->swapchain,
                           &swapchain->image_count, NULL);
   vkGetSwapchainImagesKHR(dev->device, swapchain->swapchain,
@@ -287,20 +269,50 @@ VkResult sulfur_swapchain_resize(SulfurDevice *dev, VkSurfaceKHR surface,
     }
   }
 
-  // Allocate the command buffers.
+  // Allocate command buffers.
   VkCommandBufferAllocateInfo command_buffer_info = {};
   command_buffer_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   command_buffer_info.commandPool = dev->command_pool;
   command_buffer_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   command_buffer_info.commandBufferCount = swapchain->image_count;
 
-  return vkAllocateCommandBuffers(dev->device, &command_buffer_info,
-                                  swapchain->command_buffers);
+  vkAllocateCommandBuffers(dev->device, &command_buffer_info,
+                           swapchain->command_buffers);
+
+  // Create semaphores and fences for rendering synchronization.
+  VkSemaphoreCreateInfo semaphore_info = {};
+  semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+  VkFenceCreateInfo fence_info = {};
+  fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+  fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+  result = VK_SUCCESS;
+  for (uint32_t i = 0; i < swapchain->image_count; i++) {
+    result = vkCreateSemaphore(dev->device, &semaphore_info, NULL,
+                               &swapchain->image_available_semaphores[i]);
+    if (result != VK_SUCCESS) {
+      return result;
+    }
+
+    result = vkCreateSemaphore(dev->device, &semaphore_info, NULL,
+                               &swapchain->render_finished_semaphores[i]);
+    if (result != VK_SUCCESS) {
+      return result;
+    }
+
+    result =
+        vkCreateFence(dev->device, &fence_info, NULL, &swapchain->fences[i]);
+    if (result != VK_SUCCESS) {
+      return result;
+    }
+  }
+  return VK_SUCCESS;
 }
 
 int sulfur_swapchain_present(SulfurDevice *dev, VkSurfaceKHR surface,
                              SulfurSwapchain *swapchain) {
-  swapchain->frame_id = (swapchain->frame_id + 1) % 3;
+  swapchain->frame_id = (swapchain->frame_id + 1) % swapchain->image_count;
 
   vkWaitForFences(dev->device, 1, &swapchain->fences[swapchain->frame_id],
                   VK_TRUE, UINT64_MAX);

@@ -55,7 +55,7 @@ void sulfur_pipeline_make_default_create_info(
   depth_info.maxDepthBounds = 1.f;
 
   static VkPipelineColorBlendAttachmentState blend_attachment = {};
-  blend_attachment.blendEnable = VK_TRUE;
+  blend_attachment.blendEnable = VK_FALSE;
   blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
   blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
   blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;

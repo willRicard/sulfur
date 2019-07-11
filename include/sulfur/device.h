@@ -22,7 +22,7 @@ typedef struct SulfurDevice {
  * @param VkSurfaceKHR surface The surface to present to.
  */
 VkResult sulfur_device_create(VkInstance instance, VkSurfaceKHR surface,
-                              SulfurDevice *device);
+                              SulfurDevice *dev);
 
 /**
  * Destroy a device.
