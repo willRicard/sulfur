@@ -17,15 +17,16 @@ typedef struct SulfurBuffer {
 /**
  * Create a buffer and allocate memory on the device.
  */
-VkResult sulfur_buffer_create(SulfurDevice *device, VkDeviceSize size,
-                          VkBufferUsageFlags usage,
-                          VkMemoryPropertyFlags memory_properties,
-                          SulfurBuffer *buf);
+VkResult sulfur_buffer_create(const SulfurDevice *device,
+                              const VkDeviceSize size,
+                              const VkBufferUsageFlags usage,
+                              const VkMemoryPropertyFlags memory_properties,
+                              SulfurBuffer *buf);
 
 /**
  * Destroy a buffer and free the bound memory.
  */
-void sulfur_buffer_destroy(SulfurDevice *device, SulfurBuffer *buf);
+void sulfur_buffer_destroy(const SulfurDevice *device, SulfurBuffer *buf);
 
 /**
  * Write data to a buffer.
@@ -35,7 +36,7 @@ void sulfur_buffer_write(const void *data, SulfurBuffer *buf);
 /**
  * Synchronous copy from one buffer to another.
  */
-void sulfur_buffer_copy(SulfurDevice *device, SulfurBuffer *src_buf,
-                        SulfurBuffer *dst_buf);
+void sulfur_buffer_copy(const SulfurDevice *device, const SulfurBuffer *src_buf,
+                        const SulfurBuffer *dst_buf);
 
 #endif // SULFUR_BUFFER_H_

@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-VkResult sulfur_buffer_create(SulfurDevice *dev, VkDeviceSize size,
-                              VkBufferUsageFlags usage,
-                              VkMemoryPropertyFlags memory_properties,
+VkResult sulfur_buffer_create(const SulfurDevice *dev, const VkDeviceSize size,
+                              const VkBufferUsageFlags usage,
+                              const VkMemoryPropertyFlags memory_properties,
                               SulfurBuffer *buffer) {
   VkPhysicalDeviceProperties props = {};
   vkGetPhysicalDeviceProperties(dev->physical_device, &props);
@@ -25,12 +25,12 @@ VkResult sulfur_buffer_create(SulfurDevice *dev, VkDeviceSize size,
     return result;
   }
 
-  VkMemoryRequirements memory_requirements;
+  VkMemoryRequirements memory_requirements = {};
   vkGetBufferMemoryRequirements(dev->device, buffer->buffer,
                                 &memory_requirements);
 
   uint32_t best_memory = sulfur_device_find_memory_type(
-      dev, memory_requirements, memory_properties);
+      dev, &memory_requirements, memory_properties);
 
   VkMemoryAllocateInfo allocate_info = {};
   allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -51,7 +51,7 @@ VkResult sulfur_buffer_create(SulfurDevice *dev, VkDeviceSize size,
   return VK_SUCCESS;
 }
 
-void sulfur_buffer_destroy(SulfurDevice *dev, SulfurBuffer *buffer) {
+void sulfur_buffer_destroy(const SulfurDevice *dev, SulfurBuffer *buffer) {
   if (buffer->data != NULL) {
     vkUnmapMemory(dev->device, buffer->memory);
   }
@@ -63,8 +63,8 @@ void sulfur_buffer_write(const void *data, SulfurBuffer *buffer) {
   memcpy(buffer->data, data, (size_t)buffer->size);
 }
 
-void sulfur_buffer_copy(SulfurDevice *dev, SulfurBuffer *src_buf,
-                        SulfurBuffer *dst_buf) {
+void sulfur_buffer_copy(const SulfurDevice *dev, const SulfurBuffer *src_buf,
+                        const SulfurBuffer *dst_buf) {
   VkCommandBuffer cmd_buf = VK_NULL_HANDLE;
   sulfur_device_begin_command_buffer(dev, &cmd_buf);
 

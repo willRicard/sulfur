@@ -30,26 +30,31 @@ typedef struct SulfurSwapchain {
 /**
  * Create an image swapchain presenting to a window surface.
  */
-VkResult sulfur_swapchain_create(SulfurDevice *device, VkSurfaceKHR surface,
+VkResult sulfur_swapchain_create(const SulfurDevice *device,
+                                 const VkSurfaceKHR surface,
                                  SulfurSwapchain *swapchain);
 
-void sulfur_swapchain_destroy(SulfurDevice *device, SulfurSwapchain *swapchain);
+void sulfur_swapchain_destroy(const SulfurDevice *device,
+                              SulfurSwapchain *swapchain);
 
 /**
  * Recreate the swapchain, image views and framebuffers.
  */
-VkResult sulfur_swapchain_resize(SulfurDevice *device, VkSurfaceKHR surface,
+VkResult sulfur_swapchain_resize(const SulfurDevice *device,
+                                 const VkSurfaceKHR surface,
                                  SulfurSwapchain *swapchain);
 
 /**
  * Destroy the swapchain, image views and framebuffers.
  */
-void sulfur_swapchain_cleanup(SulfurDevice *device, SulfurSwapchain *swapchain);
+void sulfur_swapchain_cleanup(const SulfurDevice *device,
+                              SulfurSwapchain *swapchain);
 
 /**
  * Submit the command buffers and present to the window surface.
  */
-int sulfur_swapchain_present(SulfurDevice *device, VkSurfaceKHR surface,
+int sulfur_swapchain_present(const SulfurDevice *device,
+                             const VkSurfaceKHR surface,
                              SulfurSwapchain *swapchain);
 
 #endif // SULFUR_SWAPCHAIN_H

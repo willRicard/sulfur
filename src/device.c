@@ -2,8 +2,8 @@
 
 #include <stdlib.h>
 
-VkResult sulfur_device_create(VkInstance instance, VkSurfaceKHR surface,
-                              SulfurDevice *dev) {
+VkResult sulfur_device_create(const VkInstance instance,
+                              const VkSurfaceKHR surface, SulfurDevice *dev) {
   uint32_t device_count = 0;
   VkResult result = VK_SUCCESS;
   result = vkEnumeratePhysicalDevices(instance, &device_count, NULL);
@@ -93,7 +93,7 @@ VkResult sulfur_device_create(VkInstance instance, VkSurfaceKHR surface,
 
   float priority = 1.f;
 
-  VkDeviceQueueCreateInfo queue_infos[2] = {{0}, {0}};
+  VkDeviceQueueCreateInfo queue_infos[2] = {};
 
   queue_infos[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
   queue_infos[0].queueFamilyIndex = graphics_queue_id;
@@ -142,7 +142,7 @@ void sulfur_device_destroy(SulfurDevice *dev) {
   vkDestroyDevice(dev->device, NULL);
 }
 
-VkResult sulfur_device_begin_command_buffer(SulfurDevice *device,
+VkResult sulfur_device_begin_command_buffer(const SulfurDevice *device,
                                             VkCommandBuffer *cmd_buf) {
   VkCommandBufferAllocateInfo command_buffer_info = {0};
   command_buffer_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -156,20 +156,20 @@ VkResult sulfur_device_begin_command_buffer(SulfurDevice *device,
     return result;
   }
 
-  VkCommandBufferBeginInfo begin_info = {0};
-  begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+  static const VkCommandBufferBeginInfo begin_info = {
+      .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+      .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
   vkBeginCommandBuffer(*cmd_buf, &begin_info);
 
   return VK_SUCCESS;
 }
 
-VkResult sulfur_device_end_command_buffer(SulfurDevice *device,
+VkResult sulfur_device_end_command_buffer(const SulfurDevice *device,
                                           VkCommandBuffer *cmd_buf) {
   vkEndCommandBuffer(*cmd_buf);
 
-  VkSubmitInfo submit_info = {0};
+  VkSubmitInfo submit_info = {};
   submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   submit_info.commandBufferCount = 1;
   submit_info.pCommandBuffers = cmd_buf;
@@ -186,15 +186,16 @@ VkResult sulfur_device_end_command_buffer(SulfurDevice *device,
   return VK_SUCCESS;
 }
 
-uint32_t sulfur_device_find_memory_type(SulfurDevice *device,
-                                        VkMemoryRequirements mem_requirements,
-                                        VkMemoryPropertyFlags mem_properties) {
+uint32_t
+sulfur_device_find_memory_type(const SulfurDevice *device,
+                               const VkMemoryRequirements *mem_requirements,
+                               const VkMemoryPropertyFlags mem_properties) {
   uint32_t best_memory = 0;
   for (uint32_t i = 0;
        i < device->physical_device_memory_properties.memoryTypeCount; i++) {
     VkMemoryType memory_type =
         device->physical_device_memory_properties.memoryTypes[i];
-    if ((mem_requirements.memoryTypeBits & (1 << i)) &&
+    if ((mem_requirements->memoryTypeBits & (1 << i)) &&
         (memory_type.propertyFlags & mem_properties)) {
       best_memory = i;
       break;

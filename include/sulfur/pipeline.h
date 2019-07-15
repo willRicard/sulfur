@@ -9,6 +9,6 @@
  * Default pipeline create info with convenient defaults.
  */
 void sulfur_pipeline_make_default_create_info(
-    SulfurSwapchain *swapchain, VkGraphicsPipelineCreateInfo *info);
+    const SulfurSwapchain *swapchain, VkGraphicsPipelineCreateInfo *info);
 
 #endif // SULFUR_PIPELINE_H

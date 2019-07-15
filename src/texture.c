@@ -2,8 +2,9 @@
 
 #include <sulfur/buffer.h>
 
-VkResult sulfur_texture_create(SulfurDevice *device, int width, int height,
-                               VkFormat format, SulfurTexture *texture) {
+VkResult sulfur_texture_create(const SulfurDevice *device, const int width,
+                               const int height, VkFormat format,
+                               SulfurTexture *texture) {
   texture->width = width;
   texture->height = height;
 
@@ -35,7 +36,7 @@ VkResult sulfur_texture_create(SulfurDevice *device, int width, int height,
                                &mem_requirements);
 
   uint32_t best_memory = sulfur_device_find_memory_type(
-      device, mem_requirements, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+      device, &mem_requirements, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
   VkMemoryAllocateInfo alloc_info = {};
   alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -69,30 +70,31 @@ VkResult sulfur_texture_create(SulfurDevice *device, int width, int height,
   }
 
   // Create a sampler.
-  VkSamplerCreateInfo sampler_info = {};
-  sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-  sampler_info.magFilter = VK_FILTER_NEAREST;
-  sampler_info.minFilter = VK_FILTER_NEAREST;
-  sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-  sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  sampler_info.mipLodBias = 0;
-  sampler_info.anisotropyEnable = VK_FALSE;
-  sampler_info.maxAnisotropy = 1.0f;
-  sampler_info.compareEnable = VK_FALSE;
-  sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
-  sampler_info.minLod = 0.0f;
-  sampler_info.maxLod = 0.0f;
-  sampler_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-  sampler_info.unnormalizedCoordinates = VK_FALSE;
+  static const VkSamplerCreateInfo sampler_info = {
+      .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+      .magFilter = VK_FILTER_NEAREST,
+      .minFilter = VK_FILTER_NEAREST,
+      .mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST,
+      .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+      .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+      .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+      .mipLodBias = 0,
+      .anisotropyEnable = VK_FALSE,
+      .maxAnisotropy = 1.0f,
+      .compareEnable = VK_FALSE,
+      .compareOp = VK_COMPARE_OP_ALWAYS,
+      .minLod = 0.0f,
+      .maxLod = 0.0f,
+      .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+      .unnormalizedCoordinates = VK_FALSE};
 
   return vkCreateSampler(device->device, &sampler_info, NULL,
                          &texture->sampler);
 }
 
-VkResult sulfur_texture_create_from_image(SulfurDevice *device, VkFormat format,
-                                          int width, int height,
+VkResult sulfur_texture_create_from_image(const SulfurDevice *device,
+                                          const VkFormat format,
+                                          const int width, const int height,
                                           const unsigned char *pixels,
                                           SulfurTexture *texture) {
   VkResult result =
@@ -101,7 +103,7 @@ VkResult sulfur_texture_create_from_image(SulfurDevice *device, VkFormat format,
     return result;
   }
 
-  VkDeviceSize image_size = width * height * 4;
+  const VkDeviceSize image_size = width * height * 4;
 
   SulfurBuffer buffer = {};
   sulfur_buffer_create(device, image_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -147,17 +149,18 @@ VkResult sulfur_texture_create_from_image(SulfurDevice *device, VkFormat format,
   return VK_SUCCESS;
 }
 
-void sulfur_texture_destroy(SulfurDevice *device, SulfurTexture *texture) {
+void sulfur_texture_destroy(const SulfurDevice *device,
+                            SulfurTexture *texture) {
   vkDestroySampler(device->device, texture->sampler, NULL);
   vkDestroyImageView(device->device, texture->image_view, NULL);
   vkDestroyImage(device->device, texture->image, NULL);
   vkFreeMemory(device->device, texture->image_memory, NULL);
 }
 
-void sulfur_texture_transition_layout(SulfurDevice *device,
-                                      SulfurTexture *texture,
-                                      VkImageLayout old_layout,
-                                      VkImageLayout new_layout) {
+void sulfur_texture_transition_layout(const SulfurDevice *device,
+                                      const SulfurTexture *texture,
+                                      const VkImageLayout old_layout,
+                                      const VkImageLayout new_layout) {
   VkCommandBuffer cmd_buf = VK_NULL_HANDLE;
   sulfur_device_begin_command_buffer(device, &cmd_buf);
 

@@ -2,9 +2,9 @@
 
 #include <stdlib.h>
 
-VkResult sulfur_shader_create(SulfurDevice *dev, const char *shader_code,
-                              uint32_t shader_code_size,
-                              VkShaderStageFlags shader_stage,
+VkResult sulfur_shader_create(const SulfurDevice *dev, const char *shader_code,
+                              const uint32_t shader_code_size,
+                              const VkShaderStageFlags shader_stage,
                               SulfurShader *shader) {
   VkShaderModuleCreateInfo module_info = {};
   module_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -30,6 +30,6 @@ VkResult sulfur_shader_create(SulfurDevice *dev, const char *shader_code,
   return VK_SUCCESS;
 }
 
-void sulfur_shader_destroy(SulfurDevice *dev, SulfurShader *shader) {
+void sulfur_shader_destroy(const SulfurDevice *dev, SulfurShader *shader) {
   vkDestroyShaderModule(dev->device, shader->module, NULL);
 }

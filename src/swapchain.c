@@ -2,7 +2,7 @@
 
 #include <stdlib.h>
 
-static void choose_resolution(VkSurfaceCapabilitiesKHR *capabilities,
+static void choose_resolution(const VkSurfaceCapabilitiesKHR *capabilities,
                               VkExtent2D *res) {
   if (capabilities->currentExtent.width != UINT32_MAX) {
     *res = capabilities->currentExtent;
@@ -24,7 +24,8 @@ static void choose_resolution(VkSurfaceCapabilitiesKHR *capabilities,
   }
 }
 
-VkResult sulfur_swapchain_create(SulfurDevice *dev, VkSurfaceKHR surface,
+VkResult sulfur_swapchain_create(const SulfurDevice *dev,
+                                 const VkSurfaceKHR surface,
                                  SulfurSwapchain *swapchain) {
   VkSwapchainCreateInfoKHR *info = &swapchain->info;
   info->sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -37,11 +38,12 @@ VkResult sulfur_swapchain_create(SulfurDevice *dev, VkSurfaceKHR surface,
                                             &capabilities);
 
   // Choose the best image count
-  info->minImageCount = 3;
   if (3 < capabilities.minImageCount) {
     info->minImageCount = capabilities.minImageCount;
   } else if (3 > capabilities.maxImageCount) {
     info->minImageCount = capabilities.maxImageCount;
+  } else {
+    info->minImageCount = 3;
   }
 
   // Pick the best image format
@@ -62,6 +64,8 @@ VkResult sulfur_swapchain_create(SulfurDevice *dev, VkSurfaceKHR surface,
   if (format_count != 1 || formats[0].format != VK_FORMAT_UNDEFINED) {
     info->imageFormat = formats[0].format;
     info->imageColorSpace = formats[0].colorSpace;
+  } else {
+    return -1;
   }
 
   free(formats);
@@ -94,8 +98,13 @@ VkResult sulfur_swapchain_create(SulfurDevice *dev, VkSurfaceKHR surface,
     info->compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
   }
 
-  // Choose the best present mode (see the spec, preference in descending
-  // order).
+  // Choose the best present mode.
+  //
+  // @see
+  // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/vkspec.html#VkPresentModeKHR
+  //
+  // Preference in descending
+  // order.
   // 1. Mailbox
   // 2. Immediate
   // 3. FIFO
@@ -131,7 +140,7 @@ VkResult sulfur_swapchain_create(SulfurDevice *dev, VkSurfaceKHR surface,
   return sulfur_swapchain_resize(dev, surface, swapchain);
 }
 
-void swapchain_cleanup(SulfurDevice *dev, SulfurSwapchain *swapchain) {
+void swapchain_cleanup(const SulfurDevice *dev, SulfurSwapchain *swapchain) {
   vkDeviceWaitIdle(dev->device);
 
   for (uint32_t i = 0; i < swapchain->image_count; i++) {
@@ -150,13 +159,15 @@ void swapchain_cleanup(SulfurDevice *dev, SulfurSwapchain *swapchain) {
                        swapchain->command_buffers);
 }
 
-void sulfur_swapchain_destroy(SulfurDevice *dev, SulfurSwapchain *swapchain) {
+void sulfur_swapchain_destroy(const SulfurDevice *dev,
+                              SulfurSwapchain *swapchain) {
   swapchain_cleanup(dev, swapchain);
 
   vkDestroySwapchainKHR(dev->device, swapchain->swapchain, NULL);
 }
 
-VkResult sulfur_swapchain_resize(SulfurDevice *dev, VkSurfaceKHR surface,
+VkResult sulfur_swapchain_resize(const SulfurDevice *dev,
+                                 const VkSurfaceKHR surface,
                                  SulfurSwapchain *swapchain) {
   VkSurfaceCapabilitiesKHR capabilities;
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(dev->physical_device, surface,
@@ -205,15 +216,14 @@ VkResult sulfur_swapchain_resize(SulfurDevice *dev, VkSurfaceKHR surface,
   subpass.colorAttachmentCount = 1;
   subpass.pColorAttachments = &color_attachment_reference;
 
-  VkSubpassDependency subpass_dependency = {};
-  subpass_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-  subpass_dependency.dstSubpass = 0;
-  subpass_dependency.srcStageMask =
-      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  subpass_dependency.dstStageMask =
-      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  subpass_dependency.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-  subpass_dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+  // Render pass overwrites previous image contents.
+  static const VkSubpassDependency subpass_dependency = {
+      .srcSubpass = VK_SUBPASS_EXTERNAL,
+      .dstSubpass = 0,
+      .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+      .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+      .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+      .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT};
 
   VkRenderPassCreateInfo render_pass_info = {};
   render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -230,22 +240,31 @@ VkResult sulfur_swapchain_resize(SulfurDevice *dev, VkSurfaceKHR surface,
     return result;
   }
 
+  VkImageViewCreateInfo image_view_create_info = {};
+  image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+  image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+  image_view_create_info.format = swapchain->info.imageFormat;
+  image_view_create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+  image_view_create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+  image_view_create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+  image_view_create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+  image_view_create_info.subresourceRange.aspectMask =
+      VK_IMAGE_ASPECT_COLOR_BIT;
+  image_view_create_info.subresourceRange.baseMipLevel = 0;
+  image_view_create_info.subresourceRange.levelCount = 1;
+  image_view_create_info.subresourceRange.baseArrayLayer = 0;
+  image_view_create_info.subresourceRange.layerCount = 1;
+
+  VkFramebufferCreateInfo framebuffer_info = {};
+  framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+  framebuffer_info.renderPass = swapchain->render_pass;
+  framebuffer_info.attachmentCount = 1;
+  framebuffer_info.width = swapchain->info.imageExtent.width;
+  framebuffer_info.height = swapchain->info.imageExtent.height;
+  framebuffer_info.layers = 1;
+
   for (uint32_t i = 0; i < swapchain->image_count; ++i) {
-    VkImageViewCreateInfo image_view_create_info = {};
-    image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     image_view_create_info.image = swapchain_images[i];
-    image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    image_view_create_info.format = swapchain->info.imageFormat;
-    image_view_create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-    image_view_create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-    image_view_create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-    image_view_create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-    image_view_create_info.subresourceRange.aspectMask =
-        VK_IMAGE_ASPECT_COLOR_BIT;
-    image_view_create_info.subresourceRange.baseMipLevel = 0;
-    image_view_create_info.subresourceRange.levelCount = 1;
-    image_view_create_info.subresourceRange.baseArrayLayer = 0;
-    image_view_create_info.subresourceRange.layerCount = 1;
 
     result = vkCreateImageView(dev->device, &image_view_create_info, NULL,
                                &swapchain->image_views[i]);
@@ -253,14 +272,7 @@ VkResult sulfur_swapchain_resize(SulfurDevice *dev, VkSurfaceKHR surface,
       return result;
     }
 
-    VkFramebufferCreateInfo framebuffer_info = {};
-    framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebuffer_info.renderPass = swapchain->render_pass;
-    framebuffer_info.attachmentCount = 1;
     framebuffer_info.pAttachments = &swapchain->image_views[i];
-    framebuffer_info.width = swapchain->info.imageExtent.width;
-    framebuffer_info.height = swapchain->info.imageExtent.height;
-    framebuffer_info.layers = 1;
 
     result = vkCreateFramebuffer(dev->device, &framebuffer_info, NULL,
                                  &swapchain->framebuffers[i]);
@@ -280,12 +292,12 @@ VkResult sulfur_swapchain_resize(SulfurDevice *dev, VkSurfaceKHR surface,
                            swapchain->command_buffers);
 
   // Create semaphores and fences for rendering synchronization.
-  VkSemaphoreCreateInfo semaphore_info = {};
-  semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+  static const VkSemaphoreCreateInfo semaphore_info = {
+      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 
-  VkFenceCreateInfo fence_info = {};
-  fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-  fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+  static const VkFenceCreateInfo fence_info = {
+      .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+      .flags = VK_FENCE_CREATE_SIGNALED_BIT};
 
   result = VK_SUCCESS;
   for (uint32_t i = 0; i < swapchain->image_count; i++) {
@@ -310,7 +322,8 @@ VkResult sulfur_swapchain_resize(SulfurDevice *dev, VkSurfaceKHR surface,
   return VK_SUCCESS;
 }
 
-int sulfur_swapchain_present(SulfurDevice *dev, VkSurfaceKHR surface,
+int sulfur_swapchain_present(const SulfurDevice *dev,
+                             const VkSurfaceKHR surface,
                              SulfurSwapchain *swapchain) {
   swapchain->frame_id = (swapchain->frame_id + 1) % swapchain->image_count;
 
@@ -331,7 +344,7 @@ int sulfur_swapchain_present(SulfurDevice *dev, VkSurfaceKHR surface,
     return 0;
   }
 
-  VkPipelineStageFlags waitStage =
+  static const VkPipelineStageFlags waitStage =
       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
   VkSubmitInfo submit_info = {};
