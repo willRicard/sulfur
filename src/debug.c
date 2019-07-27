@@ -1,10 +1,12 @@
-#include <string.h>
 #include <sulfur/debug.h>
+
+#include <stdio.h>
+#include <string.h>
 
 void sulfur_debug_get_validation_layers(uint32_t *layer_count,
                                         const char **layers) {
   uint32_t available_layer_count = 0;
-  VkLayerProperties available_layers[16] = {};
+  VkLayerProperties available_layers[32] = {{0}};
 
   vkEnumerateInstanceLayerProperties(&available_layer_count, NULL);
   vkEnumerateInstanceLayerProperties(&available_layer_count, available_layers);
@@ -43,7 +45,7 @@ void sulfur_debug_get_extensions(uint32_t *extension_count,
                                  const char **extensions,
                                  VkBool32 *debug_utils_available) {
   uint32_t available_extension_count = 0;
-  VkExtensionProperties available_extensions[16] = {};
+  VkExtensionProperties available_extensions[32] = {{0}};
   vkEnumerateInstanceExtensionProperties(NULL, &available_extension_count,
                                          NULL);
   vkEnumerateInstanceExtensionProperties(NULL, &available_extension_count,
@@ -52,6 +54,7 @@ void sulfur_debug_get_extensions(uint32_t *extension_count,
   // Prefer the more modern `VK_EXT_debug_utils`
   // to `VK_EXT_debug_report`.
   for (uint32_t i = 0; i < available_extension_count; ++i) {
+    printf("%s\n", available_extensions[i].extensionName);
     if (!strcmp(available_extensions[i].extensionName,
                 VK_EXT_DEBUG_UTILS_EXTENSION_NAME)) {
       *extension_count = 1;
@@ -82,7 +85,7 @@ void sulfur_debug_messenger_create(
       (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
           instance, "vkCreateDebugUtilsMessengerEXT");
 
-  VkDebugUtilsMessengerCreateInfoEXT debug_info = {};
+  VkDebugUtilsMessengerCreateInfoEXT debug_info = {0};
   debug_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
   debug_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
                                VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |

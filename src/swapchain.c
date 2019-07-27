@@ -33,7 +33,7 @@ VkResult sulfur_swapchain_create(const SulfurDevice *dev,
   info->flags = 0;
   info->surface = surface;
 
-  VkSurfaceCapabilitiesKHR capabilities = {};
+  VkSurfaceCapabilitiesKHR capabilities = {0};
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(dev->physical_device, surface,
                                             &capabilities);
 
@@ -177,9 +177,11 @@ VkResult sulfur_swapchain_resize(const SulfurDevice *dev,
 
   VkSwapchainKHR old_swapchain = swapchain->swapchain;
 
-  // @TODO: Using `oldSwapchain` currently fails
+  // Using `oldSwapchain` currently fails
   // with MoltenVK.
-  // swapchain->info.oldSwapchain = old_swapchain;
+#ifndef __APPLE__
+  swapchain->info.oldSwapchain = old_swapchain;
+#endif
 
   VkResult result = vkCreateSwapchainKHR(dev->device, &swapchain->info, NULL,
                                          &swapchain->swapchain);
@@ -187,7 +189,7 @@ VkResult sulfur_swapchain_resize(const SulfurDevice *dev,
     return result;
   }
 
-  // vkDestroySwapchainKHR(dev->device, old_swapchain, NULL);
+  vkDestroySwapchainKHR(dev->device, old_swapchain, NULL);
 
   // Retrieve the swapchain images.
   VkImage swapchain_images[4];
@@ -197,7 +199,7 @@ VkResult sulfur_swapchain_resize(const SulfurDevice *dev,
                           &swapchain->image_count, swapchain_images);
 
   // Create the render pass
-  VkAttachmentDescription color_attachment = {};
+  VkAttachmentDescription color_attachment = {0};
   color_attachment.format = swapchain->info.imageFormat;
   color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
   color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -207,14 +209,14 @@ VkResult sulfur_swapchain_resize(const SulfurDevice *dev,
   color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-  VkAttachmentReference color_attachment_reference = {};
-  color_attachment_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  static const VkAttachmentReference color_attachment_reference = {
+      0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
 
-  VkSubpassDescription subpass = {};
-  subpass.flags = VK_PIPELINE_BIND_POINT_GRAPHICS;
-  subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-  subpass.colorAttachmentCount = 1;
-  subpass.pColorAttachments = &color_attachment_reference;
+  static const VkSubpassDescription subpass = {
+      .flags = VK_PIPELINE_BIND_POINT_GRAPHICS,
+      .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+      .colorAttachmentCount = 1,
+      .pColorAttachments = &color_attachment_reference};
 
   // Render pass overwrites previous image contents.
   static const VkSubpassDependency subpass_dependency = {
@@ -225,7 +227,7 @@ VkResult sulfur_swapchain_resize(const SulfurDevice *dev,
       .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
       .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT};
 
-  VkRenderPassCreateInfo render_pass_info = {};
+  VkRenderPassCreateInfo render_pass_info = {0};
   render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
   render_pass_info.attachmentCount = 1;
   render_pass_info.pAttachments = &color_attachment;
@@ -240,7 +242,7 @@ VkResult sulfur_swapchain_resize(const SulfurDevice *dev,
     return result;
   }
 
-  VkImageViewCreateInfo image_view_create_info = {};
+  VkImageViewCreateInfo image_view_create_info = {0};
   image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
   image_view_create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
   image_view_create_info.format = swapchain->info.imageFormat;
@@ -255,7 +257,7 @@ VkResult sulfur_swapchain_resize(const SulfurDevice *dev,
   image_view_create_info.subresourceRange.baseArrayLayer = 0;
   image_view_create_info.subresourceRange.layerCount = 1;
 
-  VkFramebufferCreateInfo framebuffer_info = {};
+  VkFramebufferCreateInfo framebuffer_info = {0};
   framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
   framebuffer_info.renderPass = swapchain->render_pass;
   framebuffer_info.attachmentCount = 1;
@@ -282,7 +284,7 @@ VkResult sulfur_swapchain_resize(const SulfurDevice *dev,
   }
 
   // Allocate command buffers.
-  VkCommandBufferAllocateInfo command_buffer_info = {};
+  VkCommandBufferAllocateInfo command_buffer_info = {0};
   command_buffer_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   command_buffer_info.commandPool = dev->command_pool;
   command_buffer_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -347,7 +349,7 @@ int sulfur_swapchain_present(const SulfurDevice *dev,
   static const VkPipelineStageFlags waitStage =
       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
-  VkSubmitInfo submit_info = {};
+  VkSubmitInfo submit_info = {0};
   submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   submit_info.waitSemaphoreCount = 1;
   submit_info.pWaitSemaphores =
@@ -365,7 +367,7 @@ int sulfur_swapchain_present(const SulfurDevice *dev,
     return result;
   }
 
-  VkPresentInfoKHR present_info = {};
+  VkPresentInfoKHR present_info = {0};
   present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
   present_info.waitSemaphoreCount = 1;
   present_info.pWaitSemaphores =

@@ -7,10 +7,10 @@
 
 void sulfur_pipeline_make_default_create_info(
     const SulfurSwapchain *swapchain, VkGraphicsPipelineCreateInfo *info) {
-  static VkPipelineVertexInputStateCreateInfo input_info = {};
+  static VkPipelineVertexInputStateCreateInfo input_info = {0};
   input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-  static VkPipelineInputAssemblyStateCreateInfo assembly_info = {};
+  static VkPipelineInputAssemblyStateCreateInfo assembly_info = {0};
   assembly_info.sType =
       VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
   assembly_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -18,7 +18,7 @@ void sulfur_pipeline_make_default_create_info(
 
   VkExtent2D swapchain_extent = swapchain->info.imageExtent;
 
-  static VkViewport viewport = {};
+  static VkViewport viewport = {0};
   viewport.x = 0.0f;
   viewport.y = 0.0f;
   viewport.width = (float)swapchain_extent.width;
@@ -26,12 +26,12 @@ void sulfur_pipeline_make_default_create_info(
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
 
-  static VkRect2D scissor = {};
+  static VkRect2D scissor = {0};
   scissor.extent = swapchain_extent;
   scissor.offset.x = 0;
   scissor.offset.y = 0;
 
-  static VkPipelineViewportStateCreateInfo viewport_info = {};
+  static VkPipelineViewportStateCreateInfo viewport_info = {0};
   viewport_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
   viewport_info.viewportCount = 1;
   viewport_info.pViewports = &viewport;

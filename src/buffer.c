@@ -7,13 +7,13 @@ VkResult sulfur_buffer_create(const SulfurDevice *dev, const VkDeviceSize size,
                               const VkBufferUsageFlags usage,
                               const VkMemoryPropertyFlags memory_properties,
                               SulfurBuffer *buffer) {
-  VkPhysicalDeviceProperties props = {};
+  VkPhysicalDeviceProperties props = {0};
   vkGetPhysicalDeviceProperties(dev->physical_device, &props);
   VkDeviceSize alignment = props.limits.nonCoherentAtomSize;
   VkDeviceSize actual_size = (size / alignment + 1) * alignment;
   buffer->size = actual_size;
 
-  VkBufferCreateInfo buffer_info = {};
+  VkBufferCreateInfo buffer_info = {0};
   buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
   buffer_info.size = actual_size;
   buffer_info.usage = usage;
@@ -25,14 +25,14 @@ VkResult sulfur_buffer_create(const SulfurDevice *dev, const VkDeviceSize size,
     return result;
   }
 
-  VkMemoryRequirements memory_requirements = {};
+  VkMemoryRequirements memory_requirements = {0};
   vkGetBufferMemoryRequirements(dev->device, buffer->buffer,
                                 &memory_requirements);
 
   uint32_t best_memory = sulfur_device_find_memory_type(
       dev, &memory_requirements, memory_properties);
 
-  VkMemoryAllocateInfo allocate_info = {};
+  VkMemoryAllocateInfo allocate_info = {0};
   allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
   allocate_info.allocationSize = memory_requirements.size;
   allocate_info.memoryTypeIndex = best_memory;
@@ -68,7 +68,7 @@ void sulfur_buffer_copy(const SulfurDevice *dev, const SulfurBuffer *src_buf,
   VkCommandBuffer cmd_buf = VK_NULL_HANDLE;
   sulfur_device_begin_command_buffer(dev, &cmd_buf);
 
-  VkBufferCopy copy_region = {};
+  VkBufferCopy copy_region = {0};
   copy_region.srcOffset = 0;
   copy_region.dstOffset = 0;
   copy_region.size = src_buf->size;

@@ -93,7 +93,7 @@ VkResult sulfur_device_create(const VkInstance instance,
 
   float priority = 1.f;
 
-  VkDeviceQueueCreateInfo queue_infos[2] = {};
+  VkDeviceQueueCreateInfo queue_infos[2] = {{0}};
 
   queue_infos[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
   queue_infos[0].queueFamilyIndex = graphics_queue_id;
@@ -169,7 +169,7 @@ VkResult sulfur_device_end_command_buffer(const SulfurDevice *device,
                                           VkCommandBuffer *cmd_buf) {
   vkEndCommandBuffer(*cmd_buf);
 
-  VkSubmitInfo submit_info = {};
+  VkSubmitInfo submit_info = {0};
   submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   submit_info.commandBufferCount = 1;
   submit_info.pCommandBuffers = cmd_buf;

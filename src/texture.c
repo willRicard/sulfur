@@ -8,7 +8,7 @@ VkResult sulfur_texture_create(const SulfurDevice *device, const int width,
   texture->width = width;
   texture->height = height;
 
-  VkImageCreateInfo image_info = {};
+  VkImageCreateInfo image_info = {0};
   image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
   image_info.imageType = VK_IMAGE_TYPE_2D;
   image_info.format = format;
@@ -31,14 +31,14 @@ VkResult sulfur_texture_create(const SulfurDevice *device, const int width,
     return result;
   }
 
-  VkMemoryRequirements mem_requirements = {};
+  VkMemoryRequirements mem_requirements = {0};
   vkGetImageMemoryRequirements(device->device, texture->image,
                                &mem_requirements);
 
   uint32_t best_memory = sulfur_device_find_memory_type(
       device, &mem_requirements, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-  VkMemoryAllocateInfo alloc_info = {};
+  VkMemoryAllocateInfo alloc_info = {0};
   alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
   alloc_info.allocationSize = mem_requirements.size;
   alloc_info.memoryTypeIndex = best_memory;
@@ -52,7 +52,7 @@ VkResult sulfur_texture_create(const SulfurDevice *device, const int width,
   vkBindImageMemory(device->device, texture->image, texture->image_memory, 0);
 
   // Create an image view to access the texture.
-  VkImageViewCreateInfo view_info = {};
+  VkImageViewCreateInfo view_info = {0};
   view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
   view_info.image = texture->image;
   view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -105,7 +105,7 @@ VkResult sulfur_texture_create_from_image(const SulfurDevice *device,
 
   const VkDeviceSize image_size = width * height * 4;
 
-  SulfurBuffer buffer = {};
+  SulfurBuffer buffer = {0};
   sulfur_buffer_create(device, image_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -120,7 +120,7 @@ VkResult sulfur_texture_create_from_image(const SulfurDevice *device,
   VkCommandBuffer cmd_buf = VK_NULL_HANDLE;
   sulfur_device_begin_command_buffer(device, &cmd_buf);
 
-  VkBufferImageCopy region = {};
+  VkBufferImageCopy region = {0};
   region.bufferOffset = 0;
   region.bufferRowLength = 0;
   region.bufferImageHeight = 0;
@@ -164,7 +164,7 @@ void sulfur_texture_transition_layout(const SulfurDevice *device,
   VkCommandBuffer cmd_buf = VK_NULL_HANDLE;
   sulfur_device_begin_command_buffer(device, &cmd_buf);
 
-  VkImageMemoryBarrier barrier = {};
+  VkImageMemoryBarrier barrier = {0};
   barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
   barrier.oldLayout = old_layout;
   barrier.newLayout = new_layout;

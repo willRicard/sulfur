@@ -12,7 +12,7 @@ if(NOT Vulkan_FOUND)
           INTERFACE_INCLUDE_DIRECTORIES ${VULKAN_INCLUDE_DIR})
 endif(NOT Vulkan_FOUND)
 
-add_library(sulfur SHARED
+add_library(sulfur STATIC
   src/device.c
   src/swapchain.c
   src/buffer.c

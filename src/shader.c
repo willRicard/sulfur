@@ -6,7 +6,7 @@ VkResult sulfur_shader_create(const SulfurDevice *dev, const char *shader_code,
                               const uint32_t shader_code_size,
                               const VkShaderStageFlags shader_stage,
                               SulfurShader *shader) {
-  VkShaderModuleCreateInfo module_info = {};
+  VkShaderModuleCreateInfo module_info = {0};
   module_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
   module_info.pNext = NULL;
   module_info.flags = 0;
